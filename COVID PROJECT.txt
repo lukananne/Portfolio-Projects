@@ -1,0 +1,39 @@
+#Number of total cases, total deaths and DeathPercentage#
+SELECT SUM(new_cases) AS total_cases, SUM(new_deaths) AS total_deaths, SUM(new_deaths)/SUM(new_cases)*100 AS DeathPercentage
+FROM CovidDeaths.CovidDeaths
+WHERE continent IS NOT NULL
+ORDER BY 1,2
+
+#TotalDeathCount per Continent
+SELECT location, SUM(new_deaths) AS TotalDeathCount
+FROM CovidDeaths.CovidDeaths
+WHERE continent IS NULL
+AND location NOT IN ('World', 'European Union', 'International')
+GROUP BY location
+ORDER BY TotalDeathCount DESC
+
+#Percentage of population infected#
+SELECT Location, Population,date, MAX(total_cases) AS HighestInfectionCount,  MAX((total_cases/population))*100 AS PercentPopulationInfected
+FROM CovidDeaths.CovidDeaths
+GROUP BY Location, Population, date
+ORDER BY PercentPopulationInfected DESC
+
+#Number of total cases and total deaths per day in different countries#
+SELECT Location, date, population, total_cases, total_deaths
+FROM CovidDeaths.CovidDeaths
+WHERE continent is not null 
+ORDER BY 1,2
+
+#Percentage of population vaccinated#
+WITH PopvsVac AS 
+(
+SELECT CovidDeaths.continent, CovidDeaths.location, CovidDeaths.date, CovidDeaths.population, CovidVaccinations.new_vaccinations
+, SUM(CovidVaccinations.new_vaccinations) OVER (Partition by CovidDeaths.Location Order by CovidDeaths.location, CovidDeaths.Date) as RollingPeopleVaccinated
+FROM CovidDeaths.CovidDeaths
+JOIN COVIDVACCINATIONS.CovidVaccinations
+	ON CovidDeaths.location = CovidVaccinations.location
+	AND CovidDeaths.date = CovidVaccinations.date
+WHERE CovidDeaths.continent is not null 
+)
+Select *, (RollingPeopleVaccinated/Population)*100 AS PercentPeopleVaccinated
+From PopvsVac
