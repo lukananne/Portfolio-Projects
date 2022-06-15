@@ -1,0 +1,123 @@
+install.packages("tidyverse")
+install.packages("lubridate")
+install.packages("ggplot2")
+
+library("tidyverse")
+library("lubridate")
+library("ggplot2")
+
+March_21 <- read_csv("202103-divvy-tripdata.csv")
+April_21 <- read_csv("202104-divvy-tripdata.csv")
+May_21 <- read_csv("202105-divvy-tripdata.csv")
+June_21 <- read_csv("202106-divvy-tripdata.csv")
+July_21 <- read_csv("202107-divvy-tripdata.csv")
+August_21 <- read_csv("202108-divvy-tripdata.csv")
+September_21 <- read_csv("202109-divvy-tripdata.csv")
+October_21 <- read_csv("202110-divvy-tripdata.csv")
+November_21 <- read_csv("202111-divvy-tripdata.csv")
+December_21 <- read_csv("202112-divvy-tripdata.csv")
+January_22 <- read_csv("202201-divvy-tripdata.csv")
+February_22 <- read_csv("202202-divvy-tripdata.csv")
+
+colnames(March_21)
+colnames(April_21)
+colnames(May_21)
+colnames(June_21)
+colnames(July_21)
+colnames(August_21)
+colnames(December_21)
+colnames(February_22)
+ 
+## I changed the names of 4 columns##
+March_21 <-rename(March_21, bike_type = rideable_type, member_type = member_casual, start_time = started_at, end_time = ended_at)
+
+April_21 <-rename(April_21, bike_type = rideable_type, member_type = member_casual, start_time = started_at, end_time = ended_at)
+May_21 <-rename(May_21, bike_type = rideable_type, member_type = member_casual, start_time = started_at, end_time = ended_at)
+June_21 <-rename(June_21, bike_type = rideable_type, member_type = member_casual, start_time = started_at, end_time = ended_at)
+July_21 <-rename(July_21, bike_type = rideable_type, member_type = member_casual, start_time = started_at, end_time = ended_at)
+August_21 <-rename(August_21, bike_type = rideable_type, member_type = member_casual, start_time = started_at, end_time = ended_at)
+September_21 <-rename(September_21, bike_type = rideable_type, member_type = member_casual, start_time = started_at, end_time = ended_at)
+October_21 <-rename(October_21, bike_type = rideable_type, member_type = member_casual, start_time = started_at, end_time = ended_at)
+November_21 <-rename(November_21, bike_type = rideable_type, member_type = member_casual, start_time = started_at, end_time = ended_at)
+December_21 <-rename(December_21, bike_type = rideable_type, member_type = member_casual, start_time = started_at, end_time = ended_at)
+January_22 <-rename(January_22, bike_type = rideable_type, member_type = member_casual, start_time = started_at, end_time = ended_at)
+February_22 <-rename(February_22, bike_type = rideable_type, member_type = member_casual, start_time = started_at, end_time = ended_at)
+
+colnames(April_21)
+
+### I joined all 12 months of data together##
+all_trips <- (bind_rows(March_21, April_21, May_21, June_21, July_21, August_21, September_21, October_21, November_21, December_21, January_22, February_22))
+
+View(all_trips)
+
+all_trips <- rename(all_trips, customer_type = member_type)
+
+colnames(all_trips)
+
+all_trips <- all_trips %>%  
+  select(-c(start_lat, start_lng, end_lat, end_lng))
+
+dim(all_trips)
+
+nrow(all_trips)
+
+summary(all_trips)
+
+# I added columns that list the date, month, day, and year of each ride
+all_trips$date <- as.Date(all_trips$start_time)
+
+all_trips$month <- format(as.Date(all_trips$date), "%m")
+all_trips$day <- format(as.Date(all_trips$date), "%d")
+all_trips$year <- format(as.Date(all_trips$date), "%Y")
+
+View (all_trips)
+### I icluded the calculated field ride_length##
+all_trips$ride_length <- difftime(all_trips$end_time,all_trips$start_time)
+
+str(all_trips)
+colnames(all_trips)
+
+all_trips2 <- (all_trips$ride_length<0)
+View(all_trips_v2)
+
+## I removed some data
+all_trips_v2 <- all_trips[!(all_trips$start_station_name == "HQ QR" | all_trips$ride_length<0),]
+
+all_trips_v3 = na.omit(all_trips_v2)
+View(all_trips_v3)
+
+##I changed the data type of ride_length to numeric##
+all_trips_v3$ride_length <- as.numeric(as.duration(all_trips_v3$ride_length))
+
+summary(all_trips_v3$ride_length)
+
+glimpse(all_trips_v3)
+
+is.numeric(all_trips_v3$ride_length)
+
+##I ordered the days of the week##
+all_trips_v3$day_of_week <- ordered(all_trips_v3$day_of_week, levels=c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+
+##grouped mean,max,min,median by customer_type and days_of_week##
+all_trips_v31 <-
+  all_trips_v3 %>% 
+  group_by(customer_type, day_of_week) %>% 
+  summarise(number_of_rides=n(),
+            average_ride_length=mean(ride_length),
+            min_ride_legnth=min(ride_length),
+            median_ride_legnth=median(ride_length),
+            max_ride_legnth=max(ride_length))
+
+##I visualized the number of rides vs customer_type##
+ggplot(data = all_trips_v31)+
+       (mapping=aes(x = day_of_week, y = number_of_rides, fill = customer_type)) +
+      (geom_col(position = "dodge"))+
+      theme(axis.text.x = element_text(angle = 90), axis.text.y = element_text(angle = 90))+
+      labs(title = "Number of rides per customer type")
+
+##I visualized the average ride duration per customer type##
+ggplot(data = all_trips_v31)+
+  (mapping=aes(x = day_of_week, y = average_ride_length, fill = customer_type)) +
+  (geom_col(position = "dodge"))+
+  theme(axis.text.x = element_text(angle = 90), axis.text.y = element_text(angle = 45))+
+  labs(title = "Average ride duration")
